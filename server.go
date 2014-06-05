@@ -10,7 +10,7 @@ import (
 var port = flag.String("port", "8081", "port to serve on")
 
 func RecipeShopServer(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprint(w, "Hello again, world!")
+	fmt.Fprint(w, message())
 }
 
 func main() {
