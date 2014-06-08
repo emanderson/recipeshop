@@ -32,6 +32,13 @@ func setupdb() {
 	fmt.Println("Done.")
 }
 
+var numberExp = "([0-9]+ *)?[0-9]+(/[0-9]+)?"
+var numberRangeExp = fmt.Sprintf("%s( *- *%s)?", numberExp, numberExp)
+var knownModifiersExp = "(small|medium|large)"
+var knownUnitsExp = "(cups?|oz|bunch|pinch|tsp|Tbsp|cloves?|lb|dash|large|medium|small)"
+var knownUnitsWithModifiersExp = fmt.Sprintf("%s? *%s", knownModifiersExp, knownUnitsExp)
+var ingredientExp = fmt.Sprintf("- ((?P<number>%s) *)?((?P<unit>%s) *)?(?P<remainder>[^,(]*)(, *(?P<treatment>[^(]*))?(?P<optional> *.optional. *)?", numberRangeExp, knownUnitsWithModifiersExp)
+
 func loadRecipe(filePath string) {
 	fmt.Printf("Loading recipe \"%s\":\n", filePath)
 	f, err := os.Open(filePath)
@@ -45,8 +52,11 @@ func loadRecipe(filePath string) {
 	steplist := list.New()
 	stepsdone := false
 	var source string
-	numre := regexp.MustCompile("([0-9/]+)( medium| large)? ([^,]*)") // FIX!!
-	re := regexp.MustCompile("(([0-9]+ )?[0-9/]*( large)?( (cup|cups|oz|bunch|pinch|tsp|Tbsp|clove|cloves|lb|dash))) ([^,]*)")
+	re := regexp.MustCompile(ingredientExp)
+	nameToIndex := make(map[string]int)
+	for i,name := range re.SubexpNames() {
+		nameToIndex[name] = i
+	}
 	for scanner.Scan() {
 		t := scanner.Text()
 		if len(t) == 0 {
@@ -66,14 +76,9 @@ func loadRecipe(filePath string) {
 				fmt.Println(t)
 				groups := re.FindStringSubmatch(t)
 				if groups == nil {
-					groups = numre.FindStringSubmatch(t)
-					if groups == nil {
-						fmt.Println("No match")
-					} else {
-						fmt.Printf("Secondary Matched: [%s] of [%s]\n", groups[1], groups[3])
-					}
+					fmt.Println("No match")
 				} else {
-					fmt.Printf("Matched: [%s] of [%s]\n", groups[1], groups[6])
+					fmt.Printf("Matched: [%s] [%s] of [%s], [%s] [%s]\n", groups[nameToIndex["number"]], groups[nameToIndex["unit"]], groups[nameToIndex["remainder"]], groups[nameToIndex["treatment"]], groups[nameToIndex["optional"]])
 				}
 			} else {
 				title = t
