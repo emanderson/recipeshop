@@ -34,10 +34,10 @@ func setupdb() {
 
 var numberExp = "([0-9]+ *)?[0-9]+(/[0-9]+)?"
 var numberRangeExp = fmt.Sprintf("%s( *- *%s)?", numberExp, numberExp)
-var knownModifiersExp = "(small|medium|large)"
-var knownUnitsExp = "(cups?|oz|bunch|pinch|tsp|Tbsp|cloves?|lb|dash|large|medium|small)"
+var knownModifiersExp = "(heaping|small|medium|large|oz)"
+var knownUnitsExp = "(cups?|oz|ounces?|g|sprigs?|bunch|stalks?|handfuls?|pinch|teaspoons?|tsp|tablespoons?|Tbsp|cloves?|pound|lb|dash|can|jar|several drops|packages?|bottle|containers?|inch|inch piece|cubes?|head|large|medium|small)"
 var knownUnitsWithModifiersExp = fmt.Sprintf("%s? *%s", knownModifiersExp, knownUnitsExp)
-var ingredientExp = fmt.Sprintf("- ((?P<number>%s) *)?((?P<unit>%s) *)?(?P<remainder>[^,(]*)(, *(?P<treatment>[^(]*))?(?P<optional> *.optional. *)?", numberRangeExp, knownUnitsWithModifiersExp)
+var ingredientExp = fmt.Sprintf("- (?P<amount>((?P<number>%s)[+]? +)?((?P<unit>%s) +)?)(?P<remainder>[^,(]*)(, *(?P<treatment>[^(]*))?(?P<optional> *.optional. *)?", numberRangeExp, knownUnitsWithModifiersExp)
 
 func loadRecipe(filePath string) {
 	fmt.Printf("Loading recipe \"%s\":\n", filePath)
@@ -78,7 +78,7 @@ func loadRecipe(filePath string) {
 				if groups == nil {
 					fmt.Println("No match")
 				} else {
-					fmt.Printf("Matched: [%s] [%s] of [%s], [%s] [%s]\n", groups[nameToIndex["number"]], groups[nameToIndex["unit"]], groups[nameToIndex["remainder"]], groups[nameToIndex["treatment"]], groups[nameToIndex["optional"]])
+					fmt.Printf("Matched: [%s] of [%s], [%s] [%s]\n", groups[nameToIndex["amount"]], groups[nameToIndex["remainder"]], groups[nameToIndex["treatment"]], groups[nameToIndex["optional"]])
 				}
 			} else {
 				title = t
