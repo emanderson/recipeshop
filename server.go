@@ -27,21 +27,23 @@ func RecipeShopServer(w http.ResponseWriter, req *http.Request) {
 
 func SelectOne(w http.ResponseWriter, req *http.Request) {
 	respChan := make(chan int64)
-	fmt.Printf("Here\n")
 	dbC <- Blah{Sql:"foo", RespondTo:respChan}
-	fmt.Printf("There\n")
 	resp := <- respChan
 	fmt.Fprintf(w, "%d", resp)
 }
 
 func runserver() {
 	go func() {
+		dbMap := dbmap("/tmp/testdb.bin")
 		var b = Blah{}
-		fmt.Printf("Ready\n")
 		for {
 			b = <- dbC
-			fmt.Printf("Set\n")
-			b.RespondTo <- int64(len(b.Sql))
+			// TODO: handle error
+			res, err := dbMap.SelectInt(fmt.Sprintf("SELECT LENGTH(\"%s\")", b.Sql))
+			if err != nil {
+				fmt.Println("Error is ", err)
+			}
+			b.RespondTo <- res
 		}
 	}()
 
