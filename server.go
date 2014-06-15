@@ -9,16 +9,44 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 )
 
 var port = flag.String("port", "8081", "port to serve on")
+
+type Blah struct {
+	Sql string
+	RespondTo chan int64
+}
+
+var dbC = make(chan Blah)
 
 func RecipeShopServer(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(w, "Message")
 }
 
+func SelectOne(w http.ResponseWriter, req *http.Request) {
+	respChan := make(chan int64)
+	fmt.Printf("Here\n")
+	dbC <- Blah{Sql:"foo", RespondTo:respChan}
+	fmt.Printf("There\n")
+	resp := <- respChan
+	fmt.Fprintf(w, "%d", resp)
+}
+
 func runserver() {
+	go func() {
+		var b = Blah{}
+		fmt.Printf("Ready\n")
+		for {
+			b = <- dbC
+			fmt.Printf("Set\n")
+			b.RespondTo <- int64(len(b.Sql))
+		}
+	}()
+
 	http.HandleFunc("/", RecipeShopServer)
+	http.HandleFunc("/selectOne", SelectOne)
 
 	err := http.ListenAndServe(":" + *port, nil)
 	if err != nil {
@@ -40,7 +68,6 @@ var knownUnitsWithModifiersExp = fmt.Sprintf("%s? *%s", knownModifiersExp, known
 var ingredientExp = fmt.Sprintf("- (?P<amount>((?P<number>%s)[+]? +)?((?P<unit>%s) +)?)(?P<remainder>[^,(]*)(, *(?P<treatment>[^(]*))?(?P<optional> *.optional. *)?", numberRangeExp, knownUnitsWithModifiersExp)
 
 func loadRecipe(filePath string) {
-	fmt.Printf("Loading recipe \"%s\":\n", filePath)
 	f, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal("Problem opening file: ", err)
@@ -57,6 +84,9 @@ func loadRecipe(filePath string) {
 	for i,name := range re.SubexpNames() {
 		nameToIndex[name] = i
 	}
+
+	// TODO: need to capture actual quantities, not just increment!!
+	ingredientToQuantities := make(map[string]int)
 	for scanner.Scan() {
 		t := scanner.Text()
 		if len(t) == 0 {
@@ -73,12 +103,12 @@ func loadRecipe(filePath string) {
 				steplist.PushBack(t)
 			} else if len(title) > 0 {
 				ingredientlist.PushBack(t)
-				fmt.Println(t)
 				groups := re.FindStringSubmatch(t)
 				if groups == nil {
-					fmt.Println("No match")
+					//fmt.Println("No match")
 				} else {
-					fmt.Printf("Matched: [%s] of [%s], [%s] [%s]\n", groups[nameToIndex["amount"]], groups[nameToIndex["remainder"]], groups[nameToIndex["treatment"]], groups[nameToIndex["optional"]])
+					//fmt.Printf("Matched: [%s] of [%s], [%s] [%s]\n", groups[nameToIndex["amount"]], groups[nameToIndex["remainder"]], groups[nameToIndex["treatment"]], groups[nameToIndex["optional"]])
+					ingredientToQuantities[groups[nameToIndex["remainder"]]]++
 				}
 			} else {
 				title = t
@@ -86,6 +116,10 @@ func loadRecipe(filePath string) {
 		}
 	}
 	_ = source
+
+	for ingr := range ingredientToQuantities {
+		fmt.Printf("%s\n", strings.TrimSpace(ingr))
+	}
 }
 
 func main() {
