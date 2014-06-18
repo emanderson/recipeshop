@@ -7,9 +7,15 @@ import (
 	"log"
 )
 
+type StoreDepartment struct {
+	Id int64
+	Name string
+}
+
 type Ingredient struct {
 	Id int64
 	Name string
+	CategoryId int64
 }
 
 type Recipe struct {
@@ -38,6 +44,7 @@ func initDb(dbPath string) {
 	dbmap := dbmap(dbPath)
 	defer dbmap.Db.Close()
 
+	dbmap.AddTable(StoreDepartment{}).SetKeys(true, "Id")
 	dbmap.AddTable(Ingredient{}).SetKeys(true, "Id")
 	dbmap.AddTable(Recipe{}).SetKeys(true, "Id")
 	dbmap.AddTable(RecipeIngredient{}).SetUniqueTogether("RecipeId", "IngredientId")
