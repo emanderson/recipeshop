@@ -18,6 +18,7 @@ type DatabaseRequest struct {
 	Sql string
 	Type interface{}
 	RespondTo chan DatabaseResponse
+	Args map[string]interface{}
 }
 
 type DatabaseResponse struct {
@@ -33,7 +34,7 @@ func RecipeShopServer(w http.ResponseWriter, req *http.Request) {
 
 func ListIngredients(w http.ResponseWriter, req *http.Request) {
 	respChan := make(chan DatabaseResponse)
-	dbC <- DatabaseRequest{Sql:"SELECT * FROM Ingredient", RespondTo:respChan, Type:Ingredient{}}
+	dbC <- DatabaseRequest{Sql:"SELECT * FROM Ingredient WHERE Id=:id", RespondTo:respChan, Type:Ingredient{}, Args:map[string]interface{} {"id":2}}
 	resp := <- respChan
 	fmt.Fprintf(w, "%d", len(resp.Response))
 }
@@ -45,7 +46,7 @@ func runserver() {
 		for {
 			b = <- dbC
 			// TODO: handle error
-			res, err := dbMap.Select(b.Type, b.Sql)
+			res, err := dbMap.Select(b.Type, b.Sql, b.Args)
 			if err != nil {
 				fmt.Println("Error is ", err)
 			}
