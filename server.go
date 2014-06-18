@@ -14,41 +14,47 @@ import (
 
 var port = flag.String("port", "8081", "port to serve on")
 
-type Blah struct {
+type DatabaseRequest struct {
 	Sql string
-	RespondTo chan int64
+	Type interface{}
+	RespondTo chan DatabaseResponse
 }
 
-var dbC = make(chan Blah)
+type DatabaseResponse struct {
+	Response []interface{}
+	Error error
+}
+
+var dbC = make(chan DatabaseRequest)
 
 func RecipeShopServer(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(w, "Message")
 }
 
-func SelectOne(w http.ResponseWriter, req *http.Request) {
-	respChan := make(chan int64)
-	dbC <- Blah{Sql:"foo", RespondTo:respChan}
+func ListIngredients(w http.ResponseWriter, req *http.Request) {
+	respChan := make(chan DatabaseResponse)
+	dbC <- DatabaseRequest{Sql:"SELECT * FROM Ingredient", RespondTo:respChan, Type:Ingredient{}}
 	resp := <- respChan
-	fmt.Fprintf(w, "%d", resp)
+	fmt.Fprintf(w, "%d", len(resp.Response))
 }
 
 func runserver() {
 	go func() {
 		dbMap := dbmap("/tmp/testdb.bin")
-		var b = Blah{}
+		var b = DatabaseRequest{}
 		for {
 			b = <- dbC
 			// TODO: handle error
-			res, err := dbMap.SelectInt(fmt.Sprintf("SELECT LENGTH(\"%s\")", b.Sql))
+			res, err := dbMap.Select(b.Type, b.Sql)
 			if err != nil {
 				fmt.Println("Error is ", err)
 			}
-			b.RespondTo <- res
+			b.RespondTo <- DatabaseResponse{Response:res, Error:err}
 		}
 	}()
 
 	http.HandleFunc("/", RecipeShopServer)
-	http.HandleFunc("/selectOne", SelectOne)
+	http.HandleFunc("/ingredients/list", ListIngredients)
 
 	err := http.ListenAndServe(":" + *port, nil)
 	if err != nil {
