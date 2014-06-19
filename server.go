@@ -10,9 +10,18 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"html/template"
 )
 
 var port = flag.String("port", "8081", "port to serve on")
+var templatePath = flag.String("templateDir", "tmpl/", "directory whrere template files are stored")
+
+type TemplateData struct {
+	TemplateFile string
+	RespondTo chan template.Template
+}
+
+var templateC = make(chan TemplateData)
 
 type DatabaseRequest struct {
 	Sql string
@@ -34,9 +43,12 @@ func RecipeShopServer(w http.ResponseWriter, req *http.Request) {
 
 func ListIngredients(w http.ResponseWriter, req *http.Request) {
 	respChan := make(chan DatabaseResponse)
-	dbC <- DatabaseRequest{Sql:"SELECT * FROM Ingredient WHERE Id=:id", RespondTo:respChan, Type:Ingredient{}, Args:map[string]interface{} {"id":2}}
+	dbC <- DatabaseRequest{Sql:"SELECT * FROM Ingredient", RespondTo:respChan, Type:Ingredient{}}
 	resp := <- respChan
-	fmt.Fprintf(w, "%d", len(resp.Response))
+	templateChan := make(chan template.Template)
+	templateC <- TemplateData{TemplateFile:"ingredient_list.html", RespondTo:templateChan}
+	t := <- templateChan
+	t.Execute(w, resp.Response)
 }
 
 func runserver() {
@@ -51,6 +63,19 @@ func runserver() {
 				fmt.Println("Error is ", err)
 			}
 			b.RespondTo <- DatabaseResponse{Response:res, Error:err}
+		}
+	}()
+
+	go func() {
+		templates, err := template.ParseGlob(*templatePath + "html/*.html")
+		if err != nil {
+			log.Fatal("Error loading templates: ", err)
+		}
+		var tD = TemplateData{}
+		for {
+			tD = <- templateC
+			t := templates.Lookup(tD.TemplateFile)
+			tD.RespondTo <- *t
 		}
 	}()
 

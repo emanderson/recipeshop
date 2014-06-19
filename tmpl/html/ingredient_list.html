@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!--script src="/closure-library/closure/goog/base.js"></script-->
+  </head>
+  <body>
+    <h1>Ingredients</h1>
+
+    <ul>
+      {{ range . }}
+      <li>{{ .Name }}</li>
+      {{ end }}
+    </ul>
+  </body>
+</html>
