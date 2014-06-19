@@ -15,7 +15,7 @@ type StoreDepartment struct {
 type Ingredient struct {
 	Id int64
 	Name string
-	CategoryId int64
+	StoreDepartmentId int64
 }
 
 type Recipe struct {

@@ -1,0 +1,11 @@
+INSERT INTO StoreDepartment (Name) VALUES ("None"),
+("Bakery"),
+("Bulk"),
+("Prepared Foods"),
+("Cheese"),
+("Grocery"),
+("Produce"),
+("Personal Care"),
+("Household"),
+("Frozen"),
+("Refrigerated");
