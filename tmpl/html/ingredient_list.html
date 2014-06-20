@@ -7,7 +7,14 @@
     <h1>Ingredients</h1>
 
     <ul>
-      {{ range . }}
+      {{ range .Ingredients }}
+      <li>{{ .Name }}</li>
+      {{ end }}
+    </ul>
+
+    <h2>Departments</h2>
+    <ul>
+      {{ range .StoreDepartments }}
       <li>{{ .Name }}</li>
       {{ end }}
     </ul>
