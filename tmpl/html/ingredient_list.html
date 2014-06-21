@@ -8,15 +8,9 @@
 
     <ul>
       {{ range .Ingredients }}
-      <li>{{ .Name }}</li>
+      <li>{{ .Name }} in {{ .StoreDepartmentName }}</li>
       {{ end }}
     </ul>
 
-    <h2>Departments</h2>
-    <ul>
-      {{ range .StoreDepartments }}
-      <li>{{ .Name }}</li>
-      {{ end }}
-    </ul>
   </body>
 </html>

@@ -41,23 +41,26 @@ func RecipeShopServer(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(w, "Message")
 }
 
+type IngredientWithDepartment struct {
+	Id int64
+	Name string
+	StoreDepartmentId int64
+	StoreDepartmentName string
+}
+
 type IngredientListData struct {
 	Ingredients []interface{}
-	StoreDepartments []interface{}
 }
 
 func ListIngredients(w http.ResponseWriter, req *http.Request) {
 	respChan := make(chan DatabaseResponse)
-	dbC <- DatabaseRequest{Sql:"SELECT * FROM Ingredient", RespondTo:respChan, Type:Ingredient{}}
+	dbC <- DatabaseRequest{Sql:"SELECT Ingredient.Id AS Id, Ingredient.Name AS Name, StoreDepartmentId, StoreDepartment.Name as StoreDepartmentName FROM Ingredient, StoreDepartment WHERE StoreDepartmentId = StoreDepartment.Id", RespondTo:respChan, Type:IngredientWithDepartment{}}
 	ingrResp := <- respChan
 
-	dbC <- DatabaseRequest{Sql:"SELECT * FROM StoreDepartment", RespondTo:respChan, Type:StoreDepartment{}}
-	deptResp := <- respChan
-	
 	templateChan := make(chan template.Template)
 	templateC <- TemplateData{TemplateFile:"ingredient_list.html", RespondTo:templateChan}
 	t := <- templateChan
-	t.Execute(w, IngredientListData{Ingredients:ingrResp.Response, StoreDepartments:deptResp.Response})
+	t.Execute(w, IngredientListData{Ingredients:ingrResp.Response})
 }
 
 func runserver() {
